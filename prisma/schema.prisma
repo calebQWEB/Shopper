@@ -1,0 +1,156 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  CUSTOMER
+  ADMIN
+}
+
+enum ProductStatus {
+  in_stock
+  out_of_stock
+  draft
+}
+
+enum Visibility {
+  active
+  draft
+  hidden
+}
+
+model User {
+  id            Int       @id @default(autoincrement())
+  name          String
+  email         String    @unique
+  password      String
+  emailVerified DateTime?
+  phoneNumber   String?
+  role          UserRole  @default(CUSTOMER)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  status        String    @default("active")
+  totalSpent    Float     @default(0)
+  spendLevel    String    @default("bronze")
+  customerCode  String?   @unique
+  emailVerificationTokens EmailVerificationToken[]
+  orders                  Order[]
+  addresses               Address[]
+}
+
+model EmailVerificationToken {
+  id        Int      @id @default(autoincrement())
+  token     String   @unique
+  userId    Int
+  expiresAt DateTime
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model Product {
+  id              Int            @id @default(autoincrement())
+  name            String
+  price           Float
+  oldPrice        Float?
+  discount        Float?
+  description     String
+  imageURL        String         @default("https://res.cloudinary.com/dnk9m85hq/image/upload/v1740859531/DALL_E_2025-03-01_21.02.19_-_A_highly_detailed_and_elegant_digital_rendering_of_an_LG_Gram_17_laptop._The_laptop_is_placed_on_a_sleek_modern_desk_with_soft_ambient_lighting._The_nvdsqw.webp")
+  cateogory       String
+  quantity        Int            @default(0)
+  status          ProductStatus  @default(in_stock)
+  isFeatured      Boolean        @default(false)
+  sku             String?        @unique
+  salesCount      Int            @default(0)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  // SEO & publishing
+  title           String?        @db.VarChar(60)
+  publishedDate   DateTime?
+  seoDescription  String?        @db.VarChar(160)
+  visibility      Visibility     @default(active)
+
+  // Physical dimensions
+  width           Float?
+  height          Float?
+  length          Float?
+  weight          Float?
+
+  // Newly added fields
+  tags            Json?
+  tax             Boolean? 
+  restockDate     DateTime? 
+}
+
+
+model Order {
+  id              Int         @id @default(autoincrement())
+  userId          Int
+  user            User        @relation(fields: [userId], references: [id])
+  email           String
+  reference       String
+  shippingAddress Json
+  totalPrice      Float
+  status          String
+  items           OrderItem[]
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+}
+
+model OrderItem {
+  id              Int    @id @default(autoincrement())
+  orderId         Int // 👈 Foreign key (order id)
+  order           Order  @relation(fields: [orderId], references: [id]) // 👈 Relation back to Order
+  productName     String
+  productPrice    Float
+  productQuantity Int
+  productPicture  String
+  category        String
+}
+
+model TemporaryCart {
+  id           Int      @id @default(autoincrement())
+  userId       Int
+  cartItems    Json
+  totalPrice   Float
+  shippingInfo Json
+  status       String   @default("pending") // or "awaiting_payment"
+  createdAt    DateTime @default(now())
+}
+
+model Address {
+  id          String   @id @default(cuid())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      Int
+
+  country     String
+  state       String
+  city        String
+  postalCode  String
+  street      String
+  isDefault   Boolean  @default(false)
+
+  createdAt   DateTime @default(now())
+} 
+
+model Promotion {
+  id            String   @id @default(cuid())
+  title         String
+  description   String
+  type          String   // 'percentage' | 'fixed'
+  value         Float
+  startDate     DateTime
+  endDate       DateTime
+  isSpecial     Boolean  @default(false)
+  status        String   // 'active' | 'inactive'
+  applicableTo  String   // 'all' | 'category' | 'product'
+  productIds    String?  // comma-separated product IDs (if applicableTo === 'product')
+  categoryIds   String?  // comma-separated category IDs (if applicableTo === 'category')
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
