@@ -12,7 +12,7 @@ const Page = async ({ params }) => {
   });
 
   return (
-    <section className={`${styles.padding} relative main-bg`}>
+    <section className={`${styles.padding} relative mt-32 main-bg`}>
       {<ItemAddedToCart /> || ""}
       <h1
         className={`${styles.sectionHeadText} font-montserrat font-black text-center md:text-start`}
