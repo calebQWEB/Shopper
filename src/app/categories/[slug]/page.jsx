@@ -1,5 +1,5 @@
-import ItemAddedToCart from "@/components/ui/itemAddedToCart";
-import ProductCard from "@/components/ui/productCard";
+import ItemAddedToCart from "@/components/ui/ItemAddedToCart";
+import ProductCard from "@/components/ui/ProductCard";
 import { prisma } from "@/libs/prisma";
 import { styles } from "@/libs/styles";
 
