@@ -8,6 +8,8 @@ export const metadata = {
   title: { default: "Control panel", template: "%s | Shopper admin" },
 };
 
+export const dynamic = "force-dynamic";
+
 const layout = async ({ children }) => {
   const session = await getServerSession(authOptions);
 
