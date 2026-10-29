@@ -7,7 +7,7 @@ import { NextResponse } from "next/server";
 export async function POST(request) {
   try {
     // Parse the JSON request body
-    const { name, email, password, adminCode } = await request.json();
+    const { name, email, password, phone, adminCode } = await request.json();
 
     // Check if a user with this email already exists
     const existingUser = await prisma.user.findUnique({ where: { email } });
@@ -33,6 +33,7 @@ export async function POST(request) {
         name,
         email,
         password: hashedPassword,
+        phoneNumber: phone,
         role, // Either "CUSTOMER" or "ADMIN"
       },
     });
@@ -76,7 +77,9 @@ export async function POST(request) {
     //   `,
     // });
 
-    return NextResponse.json(user, { status: 201 });
+    // Never send the password hash back to the browser
+    const { password: _password, ...safeUser } = user;
+    return NextResponse.json(safeUser, { status: 201 });
   } catch (error) {
     console.error(error);
     return NextResponse.json(

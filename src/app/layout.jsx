@@ -1,11 +1,11 @@
 import { Zen_Dots, Montserrat } from "next/font/google";
 import "./globals.css";
-import Providers from "@/libs/provider";
-import PathnameProvider from "@/components/PathnameProvider";
+import { PersistedContent, StoreProvider } from "@/libs/provider";
 import Navigation from "@/components/Navigation";
-import { CircleHelp } from "lucide-react";
-import { PostHogProvider } from "@/libs/PostHogProvider";
 import ServerPromo from "@/components/ServerPromo";
+import Footer from "@/components/Footer";
+import ItemAddedToCart from "@/components/ui/ItemAddedToCart";
+import HideOnAdmin from "@/components/HideOnAdmin";
 
 const zenDots = Zen_Dots({
   variable: "--font-zen-dots",
@@ -16,32 +16,39 @@ const zenDots = Zen_Dots({
 const montserrat = Montserrat({
   variable: "--font-montserrat",
   subsets: ["latin"],
-  weight: ["400", "700", "900"],
+  weight: ["400", "500", "600", "700", "900"],
 });
 
 export const metadata = {
-  title: "Shopper",
-  description: "An e-commerce site",
+  title: {
+    default: "Shopper — Premium tech, delivered",
+    template: "%s | Shopper",
+  },
+  description:
+    "Shop laptops, smartphones, tablets, headphones, smartwatches and gaming consoles.",
 };
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body
-        className={`${zenDots.variable} ${montserrat.variable} antialiased relatives`}
+        className={`${zenDots.variable} ${montserrat.variable} font-montserrat antialiased flex min-h-screen flex-col bg-white text-headline`}
       >
-        {/* <PathnameProvider /> */}
-        <div className="fixed top-0 left-0 right-0 bg-white shadow-md z-50">
-          <ServerPromo />
-          <Navigation />
-        </div>
-        <Providers>
-          <div className="mx-auto">{children}</div>
-        </Providers>
+        <StoreProvider>
+          <HideOnAdmin>
+            <header className="sticky top-0 z-50 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
+              <ServerPromo />
+              <Navigation />
+            </header>
+          </HideOnAdmin>
 
-        <button className="z-40 p-2 flex items-center justify-between gap-3 fixed bottom-10 left-10 bg-green-600 text-white rounded-full transition-all duration-300 text-sm font-medium shadow-md hover:shadow-lg hover:scale-105 active:scale-95">
-          <CircleHelp size={30} />
-        </button>
+          <main className="flex-1">
+            <PersistedContent>{children}</PersistedContent>
+          </main>
+
+          <Footer />
+          <ItemAddedToCart />
+        </StoreProvider>
       </body>
     </html>
   );

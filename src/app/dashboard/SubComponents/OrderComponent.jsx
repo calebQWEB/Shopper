@@ -1,58 +1,53 @@
+import Image from "next/image";
 import Link from "next/link";
+import { ChevronRight } from "lucide-react";
+import OrderStatus, { orderRef } from "@/components/ui/OrderStatus";
+import { formatDate, formatNaira } from "@/libs/format";
 
 const OrderComponent = ({ order }) => {
+  const items = order.items ?? [];
+  const itemCount = items.reduce((sum, item) => sum + item.productQuantity, 0);
+  const destination = [order.shippingAddress?.city, order.shippingAddress?.country]
+    .filter(Boolean)
+    .join(", ");
+
   return (
-    <div
-      key={order.id}
-      className="p-6 bg-white rounded-2xl shadow-md hover:shadow-lg transition-shadow border border-gray-100"
+    <Link
+      href={`/orders/${order.id}`}
+      className="card flex items-center gap-4 p-3 transition hover:border-slate-300 hover:shadow-sm sm:p-4"
     >
-      <div className="flex flex-col lg:flex-row items-center justify-center lg:justify-between gap-4">
-        {/* Order Info */}
-        <div className="space-y-2 text-sm text-center md:text-start">
-          <div className="text-gray-600">
-            <span className="font-semibold text-gray-800">Order:</span> #
-            {order.reference.slice(0, 8).toUpperCase()}
-          </div>
-
-          <div className="flex items-center gap-2">
-            <span
-              className={`text-xs font-semibold px-2 py-1 rounded-full ${
-                order.status === "PENDING"
-                  ? "bg-red-100 text-red-600"
-                  : "bg-green-100 text-green-600"
-              }`}
-            >
-              {order.status}
-            </span>
-            <span className="text-gray-500">
-              {new Date(order.createdAt).toLocaleString()}
-            </span>
-          </div>
-
-          <div className="text-gray-700">
-            Shipping to:{" "}
-            <span className="font-medium">
-              {order.shippingAddress.city}, {order.shippingAddress.country}
-            </span>
-          </div>
-        </div>
-
-        {/* Order Summary */}
-        <div className="text-center md:text-right">
-          <div className="text-sm text-gray-500">Total</div>
-          <div className="text-lg font-bold text-gray-800">
-            ₦{order.totalPrice.toLocaleString()}
-          </div>
-
-          <Link
-            href={`/orders/${order.id}`}
-            className="text-sm text-blue-600 hover:underline mt-2 inline-block"
+      <div className="flex shrink-0 -space-x-3">
+        {items.slice(0, 3).map((item) => (
+          <div
+            key={item.id}
+            className="relative h-12 w-12 overflow-hidden rounded-lg border-2 border-white bg-slate-100"
           >
-            View Details →
-          </Link>
-        </div>
+            <Image src={item.productPicture} alt="" fill sizes="48px" className="object-cover" />
+          </div>
+        ))}
+        {items.length > 3 && (
+          <div className="grid h-12 w-12 place-items-center rounded-lg border-2 border-white bg-slate-100 text-xs font-semibold">
+            +{items.length - 3}
+          </div>
+        )}
       </div>
-    </div>
+
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-sm font-semibold">{orderRef(order.reference)}</span>
+          <OrderStatus status={order.status} />
+        </div>
+        <p className="mt-0.5 truncate text-xs text-slate-500">
+          {formatDate(order.createdAt)} · {itemCount} {itemCount === 1 ? "item" : "items"}
+          {destination && ` · ${destination}`}
+        </p>
+      </div>
+
+      <div className="text-right">
+        <p className="font-bold">{formatNaira(order.totalPrice)}</p>
+      </div>
+      <ChevronRight size={18} className="shrink-0 text-slate-400" />
+    </Link>
   );
 };
 

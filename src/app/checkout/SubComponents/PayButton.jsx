@@ -1,134 +1,102 @@
 "use client";
-import { useRouter } from "next/navigation";
 import { usePostHog } from "posthog-js/react";
 import { useEffect, useState } from "react";
-import { useSelector } from "react-redux";
 
-const PayButton = ({ email, amount, userAddress }) => {
+const PAYSTACK_SCRIPT = "https://js.paystack.co/v1/inline.js";
+
+const PayButton = ({ userId, email, amount, shippingAddress, items, onSuccess }) => {
   const posthog = usePostHog();
-  const [user, setUser] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  const router = useRouter();
-  const shipping = useSelector((state) => state.product.shippingDetails);
-  const cartItems = useSelector((state) => state.product.cartItems);
-  const buyNowCart = useSelector((state) => state.product.buyNow);
-  const buyNowStatus = useSelector((state) => state.product.BuyNowStatus);
-  // const bulkBuyCategory = useSelector((state) => state.product.bulkBuyCategory);
+  const [ready, setReady] = useState(false);
+  const [paying, setPaying] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    if (
-      !document.querySelector(
-        'script[src="https://js.paystack.co/v1/inline.js"]'
-      )
-    ) {
-      const script = document.createElement("script");
-      script.src = "https://js.paystack.co/v1/inline.js";
-      script.async = true;
-      document.body.appendChild(script);
-    }
-  }, []);
-
-  useEffect(() => {
-    const fetchUserSession = async () => {
-      try {
-        setIsLoading(true);
-        const res = await fetch("/api/user");
-        const data = await res.json();
-
-        if (!res.ok) {
-          console.log(data);
-        }
-
-        setUser(data);
-      } catch (error) {
-        console.error(error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchUserSession();
-  }, []);
-
-  if (isLoading) {
-    return <p className="text-center">Loading...</p>;
-  }
-
-  const handlePay = async () => {
-    posthog.capture("pay_button_clicked", {
-      amount,
-      email,
-      userId: user?.user?.id,
-      items: buyNowStatus
-        ? [
-            {
-              productName: buyNowCart[0]?.name,
-              productQuantity: buyNowCart[0]?.quantity,
-              category: buyNowCart[0]?.category,
-            },
-          ]
-        : cartItems.map((item) => ({
-            productName: item.name,
-            productQuantity: item.quantity,
-            category: item.category,
-          })),
-    });
-
-    if (!user || !user.user?.id) {
-      alert(
-        "User information is not loaded yet. Please refresh and try again."
-      );
+    if (window.PaystackPop) {
+      setReady(true);
       return;
     }
 
+    let script = document.querySelector(`script[src="${PAYSTACK_SCRIPT}"]`);
+    if (!script) {
+      script = document.createElement("script");
+      script.src = PAYSTACK_SCRIPT;
+      script.async = true;
+      document.body.appendChild(script);
+    }
+
+    const onLoad = () => setReady(true);
+    const onError = () =>
+      setError("Couldn't load the payment window. Check your connection and refresh.");
+    script.addEventListener("load", onLoad);
+    script.addEventListener("error", onError);
+    return () => {
+      script.removeEventListener("load", onLoad);
+      script.removeEventListener("error", onError);
+    };
+  }, []);
+
+  const handlePay = () => {
+    setError("");
+    // Buy-now items store the category as "category", cart items as "cateogory"
+    const orderItems = items.map((item) => ({
+      productName: item.name,
+      productPrice: item.price,
+      productQuantity: item.quantity,
+      productPicture: item.imageURL,
+      category: item.category ?? item.cateogory,
+    }));
+
+    posthog?.capture("pay_button_clicked", {
+      amount,
+      email,
+      userId,
+      items: orderItems.map(({ productName, productQuantity, category }) => ({
+        productName,
+        productQuantity,
+        category,
+      })),
+    });
+
+    const key = process.env.NEXT_PUBLIC_PAYSTACK_PUBLISHABLE_KEY;
+    if (!key) {
+      setError("Payments aren't set up yet: the Paystack public key is missing.");
+      return;
+    }
+
+    setPaying(true);
     const handler = window.PaystackPop.setup({
-      key: process.env.NEXT_PUBLIC_PAYSTACK_PUBLISHABLE_KEY,
+      key,
       email,
       amount: amount * 100, // Paystack requires amount in kobo
       currency: "NGN",
       metadata: {
-        userId: user?.user?.id,
-        shippingAddress: userAddress,
-        items: buyNowStatus
-          ? [
-              {
-                productName: buyNowCart[0]?.name,
-                productPrice: buyNowCart[0]?.price,
-                productQuantity: buyNowCart[0]?.quantity,
-                productPicture: buyNowCart[0]?.imageURL,
-                category: buyNowCart[0]?.category,
-              },
-            ]
-          : cartItems.map((item) => ({
-              productName: item.name,
-              productPrice: item.price,
-              productQuantity: item.quantity,
-              productPicture: item.imageURL,
-              category: item.cateogory,
-            })),
+        userId,
+        shippingAddress,
+        items: orderItems,
         totalPrice: amount,
       },
       callback: (response) => {
-        console.log("✅ Payment successful:", response);
-        alert("Payment successful! Transaction Ref: " + response.reference);
-        router.push("/dashboard");
+        setPaying(false);
+        onSuccess(response.reference);
       },
-      onClose: () => {
-        console.log("❌ Payment window closed");
-      },
+      onClose: () => setPaying(false),
     });
 
     handler.openIframe();
   };
 
   return (
-    <button
-      onClick={handlePay}
-      className="bg-green-500 w-auto text-headline text-center self-start font-montserrat font-semibold p-3 rounded-lg hover:scale-105 active:scale-95"
-    >
-      Pay Now
-    </button>
+    <>
+      <button
+        type="button"
+        onClick={handlePay}
+        disabled={!ready || paying}
+        className="btn btn-accent mt-4 w-full py-3 text-base"
+      >
+        {!ready ? "Loading payment…" : paying ? "Waiting for payment…" : "Pay now"}
+      </button>
+      {error && <p className="mt-2 text-center text-sm text-rose-600">{error}</p>}
+    </>
   );
 };
 

@@ -20,12 +20,16 @@ export const authOptions = {
         const user = await prisma.user.findUnique({
           where: { email: credentials.email },
         });
-        // IMPORTANT: In production, compare hashed passwords.
+        if (!user?.password) throw new Error("Invalid email or password");
+
         const isValidPassword = await bcrypt.compare(
           credentials.password,
           user.password
         );
         if (!isValidPassword) throw new Error("Invalid email or password");
+        if (user.status === "banned") {
+          throw new Error("This account has been suspended");
+        }
 
         return {
           id: user.id,

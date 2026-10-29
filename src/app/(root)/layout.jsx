@@ -1,11 +1,5 @@
 const layout = ({ children }) => {
-  return (
-    <main className="bg-heroBackground">
-      <div className="max-auto">
-        <div>{children}</div>
-      </div>
-    </main>
-  );
+  return <>{children}</>;
 };
 
 export default layout;

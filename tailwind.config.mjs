@@ -15,6 +15,7 @@ export default {
       colors: {
         heroBackground: "#fffffe",
         headline: "#272343",
+        night: "#1c1838",
         subHeadline: "#2d334a",
         primary: {
           DEFAULT: "#E7C9A5",
@@ -75,6 +76,15 @@ export default {
         card2: "#E8F5E9",
         card3: "#E8F5E9",
         card4: "#F3E5F5",
+      },
+      keyframes: {
+        "toast-in": {
+          "0%": { opacity: "0", transform: "translate(-50%, 12px)" },
+          "100%": { opacity: "1", transform: "translate(-50%, 0)" },
+        },
+      },
+      animation: {
+        "toast-in": "toast-in 0.2s ease-out both",
       },
     },
   },

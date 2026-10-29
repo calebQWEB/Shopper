@@ -1,4 +1,5 @@
 import { prisma } from "@/libs/prisma";
+import { parseEndDate, parseStartDate } from "@/libs/promotionDates";
 import { NextResponse } from "next/server";
 
 export async function PATCH(req, context) {
@@ -8,10 +9,13 @@ export async function PATCH(req, context) {
 
     // Build data object only with present fields
     const data = {};
+
     if (body.title !== undefined) data.title = body.title;
     if (body.description !== undefined) data.description = body.description;
     if (body.type !== undefined) data.type = body.type;
     if (body.applicableTo !== undefined) data.applicableTo = body.applicableTo;
+    if (body.isSpecial !== undefined) data.isSpecial = Boolean(body.isSpecial);
+
     if (body.value !== undefined) {
       if (isNaN(parseFloat(body.value))) {
         return NextResponse.json(
@@ -21,50 +25,34 @@ export async function PATCH(req, context) {
       }
       data.value = parseFloat(body.value);
     }
+
     if (body.startDate !== undefined) {
-      if (isNaN(new Date(body.startDate))) {
+      const start = parseStartDate(body.startDate);
+      if (isNaN(start)) {
         return NextResponse.json(
           { error: "Invalid startDate format" },
           { status: 400 }
         );
       }
-      data.startDate = new Date(body.startDate);
+      data.startDate = start;
     }
+
     if (body.endDate !== undefined) {
-      if (isNaN(new Date(body.endDate))) {
+      const end = parseEndDate(body.endDate);
+      if (isNaN(end)) {
         return NextResponse.json(
           { error: "Invalid endDate format" },
           { status: 400 }
         );
       }
-      data.endDate = new Date(body.endDate);
-    }
-    if (body.status !== undefined) data.status = body.status;
-    if (body.productIds !== undefined) {
-      if (
-        data.type === "product" &&
-        (!Array.isArray(body.productIds) || body.productIds.length === 0)
-      ) {
-        return NextResponse.json(
-          { error: "Please select at least one product for this promotion." },
-          { status: 400 }
-        );
-      }
-      data.productIds = body.productIds;
+      data.endDate = end;
     }
 
-    if (body.categoryIds !== undefined) {
-      if (
-        data.type === "product" &&
-        (!Array.isArray(body.categoryIds) || body.categoryIds.length === 0)
-      ) {
-        return NextResponse.json(
-          { error: "Please select at least one category for this promotion." },
-          { status: 400 }
-        );
-      }
-      data.categoryIds = body.categoryIds;
-    }
+    if (body.status !== undefined) data.status = body.status;
+
+    // Stored as comma-separated strings
+    if (body.productIds !== undefined) data.productIds = body.productIds || null;
+    if (body.categoryIds !== undefined) data.categoryIds = body.categoryIds || null;
 
     await prisma.promotion.update({
       where: { id: id },
@@ -82,7 +70,7 @@ export async function PATCH(req, context) {
 }
 
 export async function DELETE(req, { params }) {
-  const { id } = params;
+  const { id } = await params;
 
   try {
     if (!id)

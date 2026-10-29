@@ -5,13 +5,14 @@ import { useDispatch } from "react-redux";
 export const useUtils = () => {
   const dispatch = useDispatch();
 
-  const addItemsToCart = (mainProduct) => {
+  // product.quantity is the stock level, so the cart quantity is passed separately
+  const addItemsToCart = (mainProduct, quantity = 1) => {
     dispatch(
       addItem({
         id: mainProduct.id,
         name: mainProduct.name,
         cateogory: mainProduct.cateogory,
-        quantity: mainProduct.quantity,
+        quantity,
         imageURL: mainProduct.imageURL,
         price: mainProduct.price,
       })

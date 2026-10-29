@@ -1,9 +1,17 @@
 import { NextResponse } from "next/server";
+import { prisma } from "@/libs/prisma";
 
 export async function POST(req) {
   try {
     const raw = await req.json();
     const { publishedDate, restockDate } = raw;
+
+    if (!raw.name || !raw.description || !raw.cateogory || !(Number(raw.price) > 0)) {
+      return NextResponse.json(
+        { error: "Name, category, description and a price are required." },
+        { status: 400 }
+      );
+    }
 
     const fieldsToKeep = {
       name: false,
@@ -28,7 +36,6 @@ export async function POST(req) {
     };
 
     const data = {};
-
     if (publishedDate) data.publishedDate = new Date(publishedDate);
     if (restockDate) data.restockDate = new Date(restockDate);
 
@@ -47,6 +54,12 @@ export async function POST(req) {
       { status: 200 }
     );
   } catch (error) {
+    if (error.code === "P2002") {
+      return NextResponse.json(
+        { error: "Another product already uses this SKU." },
+        { status: 409 }
+      );
+    }
     console.error(error);
     return NextResponse.json({ error: "Server Error" }, { status: 500 });
   }

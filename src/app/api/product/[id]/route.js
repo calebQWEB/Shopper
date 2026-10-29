@@ -47,6 +47,12 @@ export async function PATCH(req, context) {
 
     return NextResponse.json({ product: updatedProduct });
   } catch (error) {
+    if (error.code === "P2002") {
+      return NextResponse.json(
+        { error: "Another product already uses this SKU." },
+        { status: 409 }
+      );
+    }
     console.error(error);
     return NextResponse.json(
       { error: "Error updating product" },

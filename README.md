@@ -2,7 +2,21 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
-First, run the development server:
+### Database setup (Supabase)
+
+The app uses Prisma with Postgres, hosted on [Supabase](https://supabase.com).
+
+1. Create a Supabase project and note the database password.
+2. In the dashboard, click **Connect → ORMs → Prisma** and copy the two connection strings.
+3. `cp .env.example .env` and set `DATABASE_URL` (pooled, port 6543, with `?pgbouncer=true&connection_limit=1`) and `DIRECT_URL` (port 5432). Fill in the other keys as needed.
+4. Install dependencies and create the tables:
+
+```bash
+npm install
+npx prisma migrate deploy
+```
+
+Then run the development server:
 
 ```bash
 npm run dev

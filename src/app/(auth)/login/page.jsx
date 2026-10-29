@@ -1,110 +1,106 @@
 "use client";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
 import { signIn } from "next-auth/react";
-import AuthForm from "@/components/ui/AuthForm";
-import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
-import { styles } from "@/libs/styles";
+import AuthShell, { FormAlert } from "@/components/ui/AuthShell";
+import PasswordInput from "@/components/ui/PasswordInput";
 
 const Page = () => {
   const searchParams = useSearchParams();
-  const isVerified = searchParams.get("verified");
-  const [infoMessage, setInfoMessage] = useState("");
   const router = useRouter();
+  const [error, setError] = useState("");
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm();
 
-  useEffect(() => {
-    if (isVerified) {
-      setInfoMessage("Email verified successfully. You can now login.");
-    }
-  }, [isVerified]);
+  const infoMessage = searchParams.get("verified")
+    ? "Email verified successfully. You can now sign in."
+    : searchParams.get("registered")
+      ? "Account created. Sign in to continue."
+      : "";
 
   const onSubmit = async (data) => {
+    setError("");
     const result = await signIn("credentials", {
       redirect: false,
       email: data.email,
       password: data.password,
     });
 
-    if (!result.error) {
-      router.push("/");
-    } else {
-      console.log(result.error);
+    if (result?.error) {
+      setError(
+        result.error === "This account has been suspended"
+          ? "This account has been suspended. Please contact support."
+          : "Invalid email or password."
+      );
+      return;
     }
+    // Only follow same-site paths, so the link can't redirect to another website
+    const callbackUrl = searchParams.get("callbackUrl");
+    const safeCallback =
+      callbackUrl?.startsWith("/") && !callbackUrl.startsWith("//")
+        ? callbackUrl
+        : "/";
+    router.push(safeCallback);
+    router.refresh();
   };
+
   return (
-    <section
-      className={`${styles.padding} bg-gradient-to-br from-white to-slate-100 min-h-screen flex flex-col items-center justify-center`}
+    <AuthShell
+      title="Welcome back"
+      subtitle="Sign in to your account to continue."
+      footer={
+        <>
+          New to Shopper?{" "}
+          <Link href="/register" className="font-semibold text-headline hover:underline">
+            Create an account
+          </Link>
+        </>
+      }
     >
-      <div className="w-full max-w-md bg-white p-8 rounded-2xl shadow-xl ring-1 ring-gray-200">
-        {infoMessage && (
-          <p className="text-green-600 text-center mb-4 font-medium">
-            {infoMessage}
-          </p>
-        )}
+      {infoMessage && <FormAlert tone="success">{infoMessage}</FormAlert>}
+      {error && <FormAlert>{error}</FormAlert>}
 
-        <h1 className="text-3xl font-bold text-center font-montserrat text-headline mb-6">
-          Login
-        </h1>
+      <form onSubmit={handleSubmit(onSubmit)} noValidate className="grid gap-4">
+        <div>
+          <label htmlFor="email" className="label">
+            Email
+          </label>
+          <input
+            id="email"
+            type="email"
+            autoComplete="email"
+            placeholder="john@example.com"
+            className="input"
+            {...register("email", { required: "Email is required" })}
+          />
+          {errors.email && <p className="field-error">{errors.email.message}</p>}
+        </div>
 
-        <AuthForm
-          onSubmit={onSubmit}
-          submitLabel="Login"
-          renderFields={({ register, errors }) => (
-            <>
-              {/* Email Field */}
-              <div className="mb-5">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Email
-                </label>
-                <input
-                  className="w-full border border-gray-300 p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary transition duration-150"
-                  {...register("email", { required: "Email is required" })}
-                  type="email"
-                  placeholder="john@example.com"
-                />
-                {errors.email && (
-                  <p className="text-red-500 text-sm mt-1">
-                    {errors.email.message}
-                  </p>
-                )}
-              </div>
-
-              {/* Password Field */}
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Password
-                </label>
-                <input
-                  className="w-full border border-gray-300 p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary transition duration-150"
-                  {...register("password", {
-                    required: "Password is required",
-                  })}
-                  type="password"
-                  placeholder="••••••••"
-                />
-                {errors.password && (
-                  <p className="text-red-500 text-sm mt-1">
-                    {errors.password.message}
-                  </p>
-                )}
-              </div>
-            </>
+        <div>
+          <label htmlFor="password" className="label">
+            Password
+          </label>
+          <PasswordInput
+            id="password"
+            autoComplete="current-password"
+            placeholder="••••••••"
+            {...register("password", { required: "Password is required" })}
+          />
+          {errors.password && (
+            <p className="field-error">{errors.password.message}</p>
           )}
-        />
-      </div>
+        </div>
 
-      <div className="mt-4 text-center">
-        <p className="text-base text-gray-600">
-          Don't have an account?{" "}
-          <a
-            href="/register"
-            className="text-amber-900 font-semibold hover:underline text-base"
-          >
-            Register here
-          </a>
-        </p>
-      </div>
-    </section>
+        <button type="submit" disabled={isSubmitting} className="btn btn-primary mt-2 w-full py-3">
+          {isSubmitting ? "Signing in…" : "Sign in"}
+        </button>
+      </form>
+    </AuthShell>
   );
 };
 

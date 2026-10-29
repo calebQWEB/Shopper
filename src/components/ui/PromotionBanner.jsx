@@ -1,21 +1,17 @@
-import React from "react";
+const PromotionBanner = ({ description, endDate, type, value }) => {
+  const ends = new Date(endDate).toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+  });
 
-const PromotionBanner = ({ description, startDate, endDate, type, value }) => {
-  const format = (date) => {
-    const options = { year: "numeric", month: "short", day: "numeric" };
-    return new Date(date).toLocaleDateString(undefined, options);
-  };
   return (
-    <div className="bg-yellow-100 text-yellow-800 p-2 text-center text-sm font-medium">
-      <p className="text-gray-800 text-base mb-5 leading-relaxed">
-        {description}
-      </p>
-      <div>
-        <p className="mt-2 font-semibold text-yellow-800">
-          {type === "percentage" ? `${value}% OFF` : `₦${value} OFF`}— Valid:{" "}
-          {format(startDate)} to {format(endDate)}
-        </p>
-      </div>
+    <div className="bg-headline px-4 py-2 text-center text-xs text-white sm:text-sm">
+      <span className="font-bold text-accent">
+        {type === "percentage" ? `${value}% off` : `₦${value} off`}
+      </span>
+      <span className="mx-2 text-white/40">•</span>
+      <span>{description}</span>
+      <span className="ml-2 hidden text-white/60 sm:inline">Ends {ends}</span>
     </div>
   );
 };

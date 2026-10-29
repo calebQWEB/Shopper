@@ -1,23 +1,37 @@
-import React from "react";
+const faqs = [
+  {
+    q: "Where can I see my orders?",
+    a: "Open the Orders tab. Each order shows its status, and you can click it to see the items and delivery address.",
+  },
+  {
+    q: "I paid but my order isn't showing",
+    a: "Orders appear once Paystack confirms your payment, which usually takes a few moments. Keep your payment reference in case you need to contact us.",
+  },
+  {
+    q: "How are payments handled?",
+    a: "Payments are processed securely by Paystack and charged in naira. We never see or store your card details.",
+  },
+  {
+    q: "How do I update my details or password?",
+    a: "Go to the Settings tab to change your name, email, phone number or password.",
+  },
+];
 
 const Support = () => {
   return (
-    <div className="flex items-center justify-center min-h-[60vh] bg-gradient-to-br from-gray-50 to-white px-4">
-      <div className="bg-white p-8 md:p-12 rounded-2xl shadow-xl max-w-md w-full text-center space-y-6 border border-gray-100">
-        <h1 className="font-montserrat text-2xl md:text-3xl font-semibold text-gray-800">
-          Need Help?
-        </h1>
-        <p className="text-sm text-gray-600">
-          If you're having trouble using the platform, we’ve got you covered.
-        </p>
-        <div className="flex flex-col md:flex-row justify-center items-center gap-4">
-          <button className="w-full md:w-auto px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all duration-300 text-sm font-medium shadow-md hover:shadow-lg hover:scale-105 active:scale-95">
-            View Documentation
-          </button>
-          <button className="w-full md:w-auto px-6 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all duration-300 text-sm font-medium shadow-md hover:shadow-lg hover:scale-105 active:scale-95">
-            Send a Message
-          </button>
-        </div>
+    <div>
+      <h2 className="font-semibold">Help & support</h2>
+      <p className="mt-1 text-sm text-slate-500">Answers to common questions.</p>
+      <div className="card mt-4 divide-y divide-slate-200">
+        {faqs.map(({ q, a }) => (
+          <details key={q} className="group p-4">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-sm font-semibold">
+              {q}
+              <span className="text-slate-400 transition group-open:rotate-45">+</span>
+            </summary>
+            <p className="mt-2 text-sm text-slate-600">{a}</p>
+          </details>
+        ))}
       </div>
     </div>
   );

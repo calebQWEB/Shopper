@@ -1,4 +1,5 @@
 import { prisma } from "@/libs/prisma";
+import { parseEndDate, parseStartDate } from "@/libs/promotionDates";
 import { NextResponse } from "next/server";
 
 export async function POST(req) {
@@ -14,15 +15,19 @@ export async function POST(req) {
       applicableTo,
       productIds,
       categoryIds,
+      isSpecial,
     } = await req.json();
 
     if (
-      (!title || !type || !value || !startDate || !endDate,
-      !status,
-      !applicableTo,
-      !productIds,
-      !categoryIds,
-      !description)
+      !title ||
+      !description ||
+      !type ||
+      value === undefined ||
+      value === "" ||
+      !startDate ||
+      !endDate ||
+      !status ||
+      !applicableTo
     ) {
       return NextResponse.json(
         { error: "Missing required fields" },
@@ -37,19 +42,24 @@ export async function POST(req) {
       );
     }
 
-    if (isNaN(new Date(startDate)) || isNaN(new Date(endDate))) {
+    const start = parseStartDate(startDate);
+    const end = parseEndDate(endDate);
+    if (isNaN(start) || isNaN(end)) {
       return NextResponse.json(
         { error: "Invalid date format" },
         { status: 400 }
       );
     }
 
-    if (
-      type === "product" &&
-      (!Array.isArray(productIds) || productIds.length === 0)
-    ) {
+    if (applicableTo === "product" && !productIds) {
       return NextResponse.json(
         { error: "Please select at least one product for this promotion." },
+        { status: 400 }
+      );
+    }
+    if (applicableTo === "category" && !categoryIds) {
+      return NextResponse.json(
+        { error: "Please select at least one category for this promotion." },
         { status: 400 }
       );
     }
@@ -60,11 +70,13 @@ export async function POST(req) {
       type,
       applicableTo,
       value: parseFloat(value),
-      startDate: new Date(startDate),
-      endDate: new Date(endDate),
+      startDate: start,
+      endDate: end,
       status,
-      productIds,
-      categoryIds,
+      isSpecial: Boolean(isSpecial),
+      // Stored as comma-separated strings
+      productIds: productIds || null,
+      categoryIds: categoryIds || null,
     };
 
     await prisma.promotion.create({

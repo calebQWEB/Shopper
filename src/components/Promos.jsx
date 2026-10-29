@@ -4,20 +4,16 @@ import { useEffect, useState } from "react";
 import PromotionBanner from "./ui/PromotionBanner";
 
 const Promos = () => {
-  const [activePromos, setActivePromos] = useState([]);
+  const [promos, setPromos] = useState([]);
   const [promoIndex, setPromoIndex] = useState(0);
 
   useEffect(() => {
     const fetchActivePromotions = async () => {
       try {
         const res = await fetch("/api/promotion/activePromos");
-        const promotions = await res.json();
-        if (!res.ok) {
-          console.log(promotions);
-          return;
-        }
-        setActivePromos(promotions.activePromos);
-        console.log(promotions);
+        if (!res.ok) return;
+        const data = await res.json();
+        setPromos((data.activePromos || []).filter((promo) => !promo.isSpecial));
       } catch (error) {
         console.error("Cannot fetch promos", error);
       }
@@ -27,34 +23,25 @@ const Promos = () => {
   }, []);
 
   useEffect(() => {
+    if (promos.length < 2) return;
     const interval = setInterval(() => {
-      setPromoIndex((prev) => (prev + 1 >= activePromos.length ? 0 : prev + 1));
-    }, 3000);
+      setPromoIndex((prev) => (prev + 1) % promos.length);
+    }, 5000);
 
     return () => clearInterval(interval);
-  }, [activePromos.length]);
+  }, [promos.length]);
+
+  const current = promos[promoIndex];
+  if (!current) return null;
 
   return (
-    activePromos && (
-      <div className={activePromos ? "block" : "hidden"}>
-        {activePromos.length > 0 &&
-          (() => {
-            const filtered = activePromos.filter((promo) => !promo.isSpecial);
-            const current = filtered[promoIndex];
-
-            return current ? (
-              <PromotionBanner
-                key={current.id}
-                description={current.description}
-                startDate={current.startDate}
-                endDate={current.endDate}
-                type={current.type}
-                value={current.value}
-              />
-            ) : null;
-          })()}
-      </div>
-    )
+    <PromotionBanner
+      key={current.id}
+      description={current.description}
+      endDate={current.endDate}
+      type={current.type}
+      value={current.value}
+    />
   );
 };
 

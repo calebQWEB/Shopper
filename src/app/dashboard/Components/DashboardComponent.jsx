@@ -1,128 +1,85 @@
 "use client";
-import {
-  CircleHelp,
-  Home,
-  ListOrdered,
-  LogOut,
-  Menu,
-  Settings,
-} from "lucide-react";
-import React, { useEffect, useState } from "react";
-import Support from "../SubComponents/Support";
-import DashboardHome from "../SubComponents/DashboardHome";
-import DashboardSettings from "../SubComponents/DashboardSettings";
-import Orders from "@/app/dashboard/SubComponents/Orders";
-import DashboardMobileMenu from "./DashboardMobileMenu";
+import { useState } from "react";
 import { signOut } from "next-auth/react";
+import { CircleHelp, LayoutGrid, LogOut, Package, Settings } from "lucide-react";
+import DashboardHome from "../SubComponents/DashboardHome";
+import Orders from "../SubComponents/Orders";
+import DashboardSettings from "../SubComponents/DashboardSettings";
+import Support from "../SubComponents/Support";
+import { formatDate } from "@/libs/format";
 
-const DashboardComponent = () => {
-  const [active, setActive] = useState("Home");
-  const [mobDashboard, setMobDashboard] = useState(false);
-  const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
+const tabs = [
+  { id: "overview", label: "Overview", icon: LayoutGrid },
+  { id: "orders", label: "Orders", icon: Package },
+  { id: "settings", label: "Settings", icon: Settings },
+  { id: "support", label: "Support", icon: CircleHelp },
+];
 
-  useEffect(() => {
-    const fetchPrices = async () => {
-      try {
-        const res = await fetch("/api/orders");
-        const data = await res.json();
-        setOrders(data);
-      } catch (error) {
-        console.log(error);
-      } finally {
-        setLoading(false);
-      }
-    };
+const DashboardComponent = ({ user, orders, initialTab }) => {
+  const [active, setActive] = useState(
+    tabs.some((tab) => tab.id === initialTab) ? initialTab : "overview"
+  );
 
-    fetchPrices();
-  }, []);
-
-  const mobDashboardClick = () => {
-    setMobDashboard(true);
+  // Keep the tab in the URL so it survives a refresh and can be linked to
+  const selectTab = (id) => {
+    setActive(id);
+    window.history.replaceState(null, "", id === "overview" ? "/dashboard" : `/dashboard?tab=${id}`);
   };
 
-  const activeClick = (link) => {
-    setActive(link);
-    if (mobDashboard) setMobDashboard(false);
-  };
+  const firstName = user.name.split(" ")[0];
 
   return (
-    <>
-      {mobDashboard && (
-        <DashboardMobileMenu
-          mobDashboard={mobDashboard}
-          setMobDashboard={setMobDashboard}
-          activeClick={activeClick}
-        />
-      )}
-      <div className="grid items-start justify-between gap-12 mt-8 sm:px-16 px-6 sm:py-4 py-2">
-        {!mobDashboard && (
-          <div
-            className="block lg:hidden sticky top-16 bg-white shadow-sm z-40"
-            onClick={mobDashboardClick}
-          >
-            <Menu size={30} />
-          </div>
-        )}
-        <aside className="hidden lg:block fixed">
-          <ul className="grid gap-8">
-            <li
-              className={`${
-                active === "Home" ? "bg-gray-300 p-2 rounded-lg w-48" : ""
-              } flex items-center justify-start gap-4 transition-all duration-300 ease-in-out`}
-              onClick={() => activeClick("Home")}
-            >
-              <Home /> Home
-            </li>
-            <li
-              className={`${
-                active === "Orders" ? "bg-gray-300 p-2 rounded-lg w-48" : ""
-              } flex items-center justify-start gap-4 transition-all duration-300 ease-in-out`}
-              onClick={() => activeClick("Orders")}
-            >
-              <ListOrdered /> Orders
-            </li>
+    <section className="container-page py-6 sm:py-8">
+      <div>
+        <h1 className="text-2xl font-bold sm:text-3xl">Hi, {firstName}</h1>
+        <p className="mt-1 text-sm text-slate-500">
+          Member since {formatDate(user.createdAt)}
+        </p>
+      </div>
 
-            <li
-              className={`${
-                active === "Settings" ? "bg-gray-300 p-2 rounded-lg w-48" : ""
-              } flex items-center justify-start gap-4 transition-all duration-300 ease-in-out`}
-              onClick={() => activeClick("Settings")}
-            >
-              <Settings /> Settings
-            </li>
-            <li
-              className={`${
-                active === "Support" ? "bg-gray-300 p-2 rounded-lg w-48" : ""
-              } flex items-center justify-start gap-4 transition-all duration-300 ease-in-out`}
-              onClick={() => activeClick("Support")}
-            >
-              <CircleHelp /> Support
+      <div className="mt-6 grid items-start gap-6 lg:grid-cols-[220px_1fr]">
+        <nav aria-label="Account" className="-mx-4 overflow-x-auto px-4 lg:sticky lg:top-28 lg:mx-0 lg:overflow-visible lg:px-0">
+          <ul className="flex gap-1 lg:flex-col">
+            {tabs.map(({ id, label, icon: Icon }) => (
+              <li key={id}>
+                <button
+                  type="button"
+                  onClick={() => selectTab(id)}
+                  aria-current={active === id ? "page" : undefined}
+                  className={`flex w-full items-center gap-2.5 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold transition ${
+                    active === id
+                      ? "bg-headline text-white"
+                      : "text-slate-600 hover:bg-slate-100 hover:text-headline"
+                  }`}
+                >
+                  <Icon size={16} />
+                  {label}
+                </button>
+              </li>
+            ))}
+            <li className="lg:mt-4 lg:border-t lg:border-slate-200 lg:pt-4">
+              <button
+                type="button"
+                onClick={() => signOut({ callbackUrl: "/login" })}
+                className="flex w-full items-center gap-2.5 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold text-rose-600 hover:bg-rose-50"
+              >
+                <LogOut size={16} />
+                Sign out
+              </button>
             </li>
           </ul>
+        </nav>
 
-          <div className="flex items-center justify-start gap-4 mt-36 text-red-700 cursor-pointer">
-            <LogOut />
-            <button
-              onClick={() => {
-                signOut({ callbackUrl: "/login" });
-              }}
-            >
-              Logout
-            </button>
-          </div>
-        </aside>
-
-        <div className="min-h-screen min-w-full bg-white shadow-gray-400 shadow-2xl p-3 md:p-6 lg:ml-64">
-          {active === "Home" && <DashboardHome />}
-          {active === "Orders" && <Orders orders={orders} loading={loading} />}
-          {active === "Settings" && (
-            <DashboardSettings orders={orders} loading={loading} />
+        <div className="min-w-0">
+          {active === "overview" && (
+            <DashboardHome user={user} orders={orders} onViewOrders={() => selectTab("orders")} />
           )}
-          {active === "Support" && <Support />}
+          {active === "orders" && <Orders orders={orders} />}
+          {active === "settings" && <DashboardSettings user={user} />}
+          {active === "support" && <Support />}
         </div>
       </div>
-    </>
+    </section>
   );
 };
 

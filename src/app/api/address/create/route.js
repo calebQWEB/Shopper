@@ -1,11 +1,21 @@
+import { getUserDetails } from "@/libs/getUserDetails";
 import { prisma } from "@/libs/prisma";
 import { NextResponse } from "next/server";
 
 export async function POST(req) {
   try {
+    // Addresses are always saved to the signed-in user, never to an id from the request
+    const user = await getUserDetails();
+    const userId = user?.id;
+    if (!userId) {
+      return NextResponse.json(
+        { success: false, message: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
     const body = await req.json();
-    const { userId, country, state, city, postalCode, street, isDefault } =
-      body;
+    const { country, state, city, postalCode, street, isDefault } = body;
 
     if (!userId || !country || !state || !city || !postalCode || !street) {
       return NextResponse.json(

@@ -1,145 +1,143 @@
 "use client";
 
-import { useForm } from "react-hook-form";
-import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { styles } from "@/libs/styles";
-import { Eye, EyeOff } from "lucide-react";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import AuthShell, { FormAlert } from "@/components/ui/AuthShell";
+import PasswordInput from "@/components/ui/PasswordInput";
 
 export default function RegisterPage() {
   const {
     register,
     handleSubmit,
-    formState: { errors },
+    formState: { errors, isSubmitting },
   } = useForm();
   const [serverError, setServerError] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
 
   const onSubmit = async (data) => {
-    const response = await fetch("/api/auth/register", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    });
+    setServerError("");
+    try {
+      const response = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
 
-    if (!response.ok) {
-      console.log("response", response);
-      const result = await response.json();
-      setServerError(result.error);
-    } else {
-      router.push("/login");
+      if (!response.ok) {
+        const result = await response.json().catch(() => ({}));
+        setServerError(result.error || "Could not create your account.");
+        return;
+      }
+      router.push("/login?registered=1");
+    } catch {
+      setServerError("Could not reach the server. Please try again.");
     }
   };
 
   return (
-    <section
-      className={` ${styles.paddingY} bg-gradient-to-br from-white to-slate-100 min-h-screen flex flex-col items-center justify-center`}
-    >
-      <div className="w-full max-w-md bg-white p-8 rounded-2xl shadow-xl ring-1 ring-gray-200">
-        <h1
-          className={`${styles.sectionHeadText} mb-10 text-xl font-montserrat text-headline`}
-        >
-          Register
-        </h1>
-        {serverError && <p style={{ color: "red" }}>{serverError}</p>}
-        <form onSubmit={handleSubmit(onSubmit)}>
-          <div className="flex gap-4 items-center justify-between">
-            <div className="mb-4 grid">
-              <label className="block font-monsterrat text-xl font-medium">
-                Name
-              </label>
-              <input
-                className="w-full border border-gray-300 p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary transition duration-150"
-                {...register("name", { required: "Name is required" })}
-                placeholder="John Doe"
-              />
-              {errors.name && <p>{errors.name.message}</p>}
-            </div>
-
-            {/* Email Input */}
-            <div className="mb-4 grid">
-              <label className="block font-monsterrat text-xl font-medium">
-                Email
-              </label>
-              <input
-                className="w-full border border-gray-300 p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary transition duration-150"
-                {...register("email", { required: "Email is required" })}
-                type="email"
-                placeholder="john@example.com"
-              />
-              {errors.email && <p>{errors.email.message}</p>}
-            </div>
-          </div>
-
-          {/* Phone Number */}
-          <div className="mb-4 grid">
-            <label className="block font-monsterrat text-xl font-medium">
-              Phone Number
-            </label>
-            <input
-              className="w-full border border-gray-300 p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary transition duration-150"
-              {...register("phone", { required: "Phone number is required" })}
-              type="tel"
-              placeholder="+234 456 7890"
-            />
-            {errors.phone && <p>{errors.phone.message}</p>}
-          </div>
-
-          <div className="mb-4 grid relative">
-            <label className="block font-monsterrat text-xl font-medium">
-              Password
-            </label>
-            <input
-              className="w-full border border-gray-300 p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary transition duration-150"
-              {...register("password", { required: "Password is required" })}
-              type={showPassword ? "text" : "password"}
-            />
-            {errors.password && <p>{errors.password.message}</p>}
-
-            <button
-              type="button"
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500"
-              onClick={() => setShowPassword(!showPassword)}
-            >
-              {showPassword ? <Eye /> : <EyeOff />}
-            </button>
-          </div>
-
-          <div className="mb-4 grid">
-            <label className="block font-monsterrat text-xl font-medium">
-              Admin Code (optional)
-            </label>
-            <input
-              className="w-full border border-gray-300 p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary transition duration-150"
-              {...register("adminCode")}
-              placeholder="Enter admin code if applicable"
-            />
-            <small>
-              If you have an admin code, enter it here to register as an admin.
-            </small>
-          </div>
-
-          <button
-            type="submit"
-            className="w-[200px] border border-solid border-headline bg-primary text-headline text-center self-start font-montserrat font-semibold p-3"
-          >
-            Register
-          </button>
-        </form>
-      </div>
-
-      <div className="mt-4 text-center">
-        <p className="text-base text-gray-600">
+    <AuthShell
+      title="Create your account"
+      subtitle="Check out faster and track your orders."
+      footer={
+        <>
           Already have an account?{" "}
-          <a
-            href="/login"
-            className="text-amber-900 font-semibold hover:underline text-base"
-          >
-            Login here
-          </a>
-        </p>
-      </div>
-    </section>
+          <Link href="/login" className="font-semibold text-headline hover:underline">
+            Sign in
+          </Link>
+        </>
+      }
+    >
+      {serverError && <FormAlert>{serverError}</FormAlert>}
+
+      <form onSubmit={handleSubmit(onSubmit)} noValidate className="grid gap-4">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label htmlFor="name" className="label">
+              Full name
+            </label>
+            <input
+              id="name"
+              autoComplete="name"
+              placeholder="John Doe"
+              className="input"
+              {...register("name", { required: "Name is required" })}
+            />
+            {errors.name && <p className="field-error">{errors.name.message}</p>}
+          </div>
+
+          <div>
+            <label htmlFor="phone" className="label">
+              Phone number
+            </label>
+            <input
+              id="phone"
+              type="tel"
+              autoComplete="tel"
+              placeholder="+234 456 7890"
+              className="input"
+              {...register("phone", { required: "Phone number is required" })}
+            />
+            {errors.phone && <p className="field-error">{errors.phone.message}</p>}
+          </div>
+        </div>
+
+        <div>
+          <label htmlFor="email" className="label">
+            Email
+          </label>
+          <input
+            id="email"
+            type="email"
+            autoComplete="email"
+            placeholder="john@example.com"
+            className="input"
+            {...register("email", { required: "Email is required" })}
+          />
+          {errors.email && <p className="field-error">{errors.email.message}</p>}
+        </div>
+
+        <div>
+          <label htmlFor="password" className="label">
+            Password
+          </label>
+          <PasswordInput
+            id="password"
+            autoComplete="new-password"
+            placeholder="At least 8 characters"
+            {...register("password", {
+              required: "Password is required",
+              minLength: { value: 8, message: "Use at least 8 characters" },
+            })}
+          />
+          {errors.password && (
+            <p className="field-error">{errors.password.message}</p>
+          )}
+        </div>
+
+        <details className="group rounded-lg border border-slate-200 px-3 py-2 text-sm">
+          <summary className="cursor-pointer select-none font-medium text-slate-600">
+            Have an admin code?
+          </summary>
+          <div className="pb-1 pt-3">
+            <input
+              id="adminCode"
+              aria-label="Admin code"
+              placeholder="Enter admin code"
+              className="input"
+              {...register("adminCode")}
+            />
+            <p className="mt-1 text-xs text-slate-500">
+              Only needed to register as an admin.
+            </p>
+          </div>
+        </details>
+
+        <button type="submit" disabled={isSubmitting} className="btn btn-primary mt-2 w-full py-3">
+          {isSubmitting ? "Creating account…" : "Create account"}
+        </button>
+      </form>
+    </AuthShell>
   );
 }

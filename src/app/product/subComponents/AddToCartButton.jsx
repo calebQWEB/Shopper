@@ -3,23 +3,37 @@
 import { itemAddedReturn, itemIsAddedToCart } from "@/app/slices/productSlice";
 import { useUtils } from "@/libs/utils";
 import { ShoppingCart } from "lucide-react";
-import { useEffect } from "react";
+import { usePostHog } from "posthog-js/react";
 import { useDispatch } from "react-redux";
 
-const AddToCartButton = ({ mainProduct }) => {
+// Shows an icon-only button unless a label is passed
+const AddToCartButton = ({ mainProduct, label, disabled = false, className = "" }) => {
   const { addItemsToCart } = useUtils();
   const dispatch = useDispatch();
+  const posthog = usePostHog();
+
+  const handleClick = () => {
+    posthog?.capture("add_to_cart", {
+      product_id: mainProduct.id,
+      product_name: mainProduct.name,
+      product_price: mainProduct.price,
+    });
+    addItemsToCart(mainProduct);
+    dispatch(itemIsAddedToCart());
+    setTimeout(() => dispatch(itemAddedReturn()), 2000);
+  };
 
   return (
     <button
-      className="bg-blue-500 p-3 rounded-lg transition-all duration-300 ease-in-out transform hover:scale-105 active:scale-95"
-      onClick={() => {
-        addItemsToCart(mainProduct);
-        dispatch(itemIsAddedToCart());
-        setTimeout(() => dispatch(itemAddedReturn()), 2000);
-      }}
+      type="button"
+      onClick={handleClick}
+      disabled={disabled}
+      aria-label="Add to cart"
+      title="Add to cart"
+      className={`btn btn-outline ${label ? "" : "px-3"} ${className}`}
     >
-      <ShoppingCart color="#ffffff" />
+      <ShoppingCart size={18} />
+      {label}
     </button>
   );
 };
